@@ -16,8 +16,8 @@ sumsq: sumsq.c
 par_sumsq: par_sumsq.c
 	gcc -g -O2 --std=c99 -Wall -o par_sumsq par_sumsq.c -lpthread
 
-par_sumsq2: par_sumsq2.c
-	gcc -g -O2 --std=c99 -Wall -o par_sumsq2 par_sumsq2.c -lpthread
+par_sumsq1: par_sumsq1.c
+	gcc -g -O2 --std=c99 -Wall -o par_sumsq1 par_sumsq1.c -lpthread
 
 
 #
