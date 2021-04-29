@@ -4,13 +4,18 @@
  * CS 446.646 Project 1 (Pthreads)
  *
  * Compile with --std=c99
+ * Note:  During make, errors will appear in regards to the volatile Queue, 
+ *	  this is due to the queue being a global.
  */
 
 /*******  Edited by Jacob McAllister for the purpose of CS 446.646 Project 5    *****************/
 //  Had to do a lot of brushing up on C coding, primary code in C++
 //  The Steps are related to my personal thought process and do not mean a direct correlation
 //  to how I solved every problem.
-
+//  I have multiple methods within my code commented out as I was messing with various ways
+//  of using pthreads.  For example:  I original was passing my Queue by argument and then 
+//  switched to a global because of the suggest hints.
+//  This program also uses almost no error checking, so be kind.
 
 
 /*  STEP 1 - Lets add the pthread library */
@@ -30,9 +35,13 @@ long sum = 0;
 long odd = 0;
 long min = INT_MAX;
 long max = INT_MIN;
-volatile bool done = false;
-//  Queue List Logic
 
+//  We will add a volatile bool value to track when all collection of data is complete.
+volatile bool done = false;
+
+/* STEP 2 - Build my queue list for work. */
+//  Queue List Logic
+//  This is a common struct set up for a Queue list.
 typedef struct QueueNode{
 	long key;
 	struct QueueNode* next;
@@ -83,35 +92,45 @@ long deQueue(Queue* q){
 	free(temp);
 return key;
 }
+//  End of Queue list
 
+//  We will make our list volatile so the compiler doesn't try to optimize
 volatile Queue* workingQueue;
 
+//  our given function
 void calculate_square(long number);
 
+//  These are going to be our two mutex locks, one for the Aggregates and the other for the workers
 pthread_mutex_t lockAgg = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t lockWork = PTHREAD_MUTEX_INITIALIZER;
 
-//  The conditional for our workers (suggested in the hints)
+//  The conditional for our workers
 pthread_cond_t newWorkerCondition = PTHREAD_COND_INITIALIZER;
 
+//  This is our start routine for the workers.
+//  I have two different logics in here, both work... was trying to think of which is 
+//  the more efficient method.
 void* start_routine(void* routine){
 	
+	// Loop runs until there is no more work
 	while(!done){
 
+		//  First we grab our lock
 		pthread_mutex_lock(&lockWork);
 
+		//  If the front of the queue is not NULL and we are not done... guess we have work to do.
 		if(workingQueue->front && !done){
 			long number = deQueue(workingQueue);
 			pthread_mutex_unlock(&lockWork);
 			calculate_square(number);
-
-//			pthread_cond_signal(&newWorkerCondition);	
 			
 		}
+		//  Else if the work has been signaled by master to be done, we break from loop
 		else if(done){
 			pthread_mutex_unlock(&lockWork);
 			break;
 		}
+		//  Else we just wait with our conditional wait
 		else{
 			pthread_cond_wait(&newWorkerCondition, &lockWork);
 		}
@@ -119,6 +138,7 @@ void* start_routine(void* routine){
 	}
 /*
 
+//  Similar logic as above, instead we use a while loop to hold our condition
 while(!done){
 
 	pthread_mutex_lock(&lockWork);
@@ -139,7 +159,7 @@ while(!done){
 
 */
 }
-
+//  End of start routine.
 
 //void calculate_square(long number);
 
@@ -197,11 +217,12 @@ int main(int argc, char* argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	// load numbers and add them to the queue
+	/*  STEP 3 - lets us build our workers */
+	//  3.1 - Open the input file. 
 	char *fn = argv[1];
 	FILE* fin = fopen(fn,"r");
 	
-	//  Lets collect how many workers we need our default will be 1
+	//  3.2 - Lets collect how many workers we need with our default will be 1
 	long numWorkers = 1;
 	if(argc == 3){
 		// strtol usage strtol(const char *start, char **end, int base);
@@ -209,19 +230,33 @@ int main(int argc, char* argv[])
 		numWorkers = commandInput;
 	 }
 
-//	volatile Queue* workingQueue;	
-	workingQueue = createQueue();
-	// 4.b we make the workers by making an array of pthreads!
+	//  3.3 - Create our workers
+	//  Method of  passing as arg has been commented out.
+	
+	//  Creating an array of pthreads named worker.
 	pthread_t worker[numWorkers];
+	
+	//  Use this if you wish to pass an argument.
+//	volatie Queue* workingQueue;
+
+	//  Note:  You have to make the Queue before the workers as they
+	//  will be referencing it in there routine.  It will not work
+	//  if you create the Queue after.
+	workingQueue = createQueue();
+
 	// pthread_create usuage pthread_create(pthread_t *thread, const pthread_attr_t *attr, void*(*start_routine) (void *), void *arg);
-	// step 4.3 will be create the start_routine
 	for(long i = 0; i<numWorkers; ++i){
 	//	pthread_create(&worker[i], NULL, start_routine, (void*) workingQueue);
 		pthread_create(&worker[i], NULL, start_routine, NULL);
 	}
+	//  STEP 3 - Done	
 
-//  STEP 4.D - Add the task to the queue
-//  Edit given code to make it happen
+	/* STEP 4 - Build our queue */
+	
+
+	//  Parse the infile and enQueue when encountering a P
+	//  Parsed data will be encountered as  Character + long number.  Example: "P 2".
+	//  Edit given code to make it happen
 
 	char action;
 	long num;
@@ -231,8 +266,7 @@ int main(int argc, char* argv[])
 		if(action == 'p'){
 			//  printf(" %ld ", num);
 			//  Got process, so lets work
-			//  First grab our mutex
-//			printf(" %ld", num);
+			//  First grab our lock
 			pthread_mutex_lock(&lockWork);
 			
 			//  Now we put in on the queue
@@ -241,6 +275,7 @@ int main(int argc, char* argv[])
 			//  Now we singal the threads
 			//  pthread_cond_signal usuage pthread_cond_signal(pthread_cond_t *cond) 
 			//  Calls unblocks at least one of the threads that are blocked on the condition variable, if any are blocked
+			//  To stop us from hitting a deadlock.
 			pthread_cond_signal(&newWorkerCondition);
 		
 			//  Now we free the mutex
@@ -260,11 +295,16 @@ fclose(fin);
 //  STEP 4 done!
 
 //  Lets put a busy wait in for our master thread;
+//  This will allow our workers to finish their work.
+//  Note:  If the queue is not volitale, the busy wait will
+//  NOT function properly and the program will be stuck here.
 while(workingQueue->front){
   //  Buzz Buzz
 //printf(" HUG ");
 }
 
+//  Busy wait has finished, thus work is all done!
+//  Our master thread sends the signal.
 done = true;
 
 //  Lets grab the mutex
@@ -279,6 +319,12 @@ pthread_cond_broadcast(&newWorkerCondition);
 pthread_mutex_unlock(&lockWork);
 
 //  Let all threads finish and terminate
+//  The clean up, no need for calling pthread_exit()
+//  as all threads use return as their exit status
+//  back to main.
+//  pthread_join usuage - pthread_join(pthread_t thread, void **value_ptr);
+//  "The pthread_join() function shall suspend execution of the valling thread until the target thread terminates,
+//   unless the target thread has already terminated."
 for(long i = 0; i < numWorkers; ++i){
 	pthread_join(worker[i], NULL);
 }

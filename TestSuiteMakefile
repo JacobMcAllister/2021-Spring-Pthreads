@@ -12,7 +12,7 @@
 # questions to psm@unr.edu
 
 # make sure your file is called 'par_sumsq.c' and nothing else
-PAR_SUM=par_sumsq2
+PAR_SUM=par_sumsq
 
 # all we have to do is run 'make', and everything else should work
 # note the use of '@' on echo, it suppresses make printing out
