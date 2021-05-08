@@ -9,6 +9,11 @@
  */
 
 /*******  Edited by Jacob McAllister for the purpose of CS 446.646 Project 5    *****************/
+/*
+*	Didn't do a modifcation history, sorry.  Just casually tapped away here and their till I was done.
+*
+*
+*/
 //  Had to do a lot of brushing up on C coding, primary code in C++
 //  The Steps are related to my personal thought process and do not mean a direct correlation
 //  to how I solved every problem.
@@ -42,15 +47,29 @@ volatile bool done = false;
 /* STEP 2 - Build my queue list for work. */
 //  Queue List Logic
 //  This is a common struct set up for a Queue list.
+
+/*
+*		QueueNode-Struct 
+*
+*/
 typedef struct QueueNode{
 	long key;
 	struct QueueNode* next;
 }QueueNode;
 
+/*
+*		Queue Struct
+*
+*/
 typedef struct Queue{
 	QueueNode *front, *rear;
 }Queue;
 
+/*
+*		QueueNode - NewNode
+*		Constructor
+*
+*/
 QueueNode* newNode(long k){
 	QueueNode* temp = (struct QueueNode*)malloc(sizeof(struct QueueNode));
 	temp->key = k;
@@ -58,12 +77,21 @@ QueueNode* newNode(long k){
 	return temp;
 }
 
+/*
+*		Queue* - createQueue
+*		Copy Constructor
+*		
+*/
 Queue* createQueue(){
 	Queue* q = (struct Queue*)malloc(sizeof(struct Queue));
 	q->front = q->rear = NULL;
 	return q;
 }
 
+/*
+*		Function - enQueue
+*		Used in conjuction with Queue Struct to enqueue into the queue.
+*/
 void enQueue(Queue* q, long k){
 
 	QueueNode* temp = newNode(k);
@@ -77,6 +105,10 @@ void enQueue(Queue* q, long k){
 	q->rear = temp;
 }
 
+/*
+*		Function - deQueue
+*		Used in conjuction with Queue struct to dequeue from the queue.
+*/
 long deQueue(Queue* q){
 
 	if(q->front == NULL)
@@ -110,6 +142,11 @@ pthread_cond_t newWorkerCondition = PTHREAD_COND_INITIALIZER;
 //  This is our start routine for the workers.
 //  I have two different logics in here, both work... was trying to think of which is 
 //  the more efficient method.
+
+/*
+*		Function - start_routine
+*		Works in conjuction with pthreads as start routine.
+*/
 void* start_routine(void* routine){
 	
 	// Loop runs until there is no more work
@@ -171,6 +208,11 @@ while(!done){
 //  Originally tried a more complex approach where I was grabbing a lock for every variable
 //  Then I tried only when it was updating....
 //  Eventually I just added two simple lines of code.
+
+/*
+*		Function - calculate_square
+*		Calculates the square of passed parameter value.
+*/
 void calculate_square(long number)
 {
 
